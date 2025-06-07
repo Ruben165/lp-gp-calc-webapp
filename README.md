@@ -1,1 +1,1 @@
-"# lp-gp-calc-webapp" 
+Web App for Linear/Goal Programming Calculator
