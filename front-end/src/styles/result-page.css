@@ -1,0 +1,94 @@
+.result-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: whitesmoke;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.section {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid lightgray;
+}
+
+.heading {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: black;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.sub-heading {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: black;
+  margin-bottom: 1rem;
+}
+
+.text {
+  font-size: 1rem;
+  color: black;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.list {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.list-item {
+  font-size: 1rem;
+  color: black;
+  margin-bottom: 0.25rem;
+}
+
+.result-card {
+  background-color: lightgray;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid white;
+  margin-bottom: 1rem;
+}
+
+.result-card-title {
+  font-size: 1.1rem;
+  color: black;
+  font-weight: bold;
+}
+
+.button-back {
+  padding: 0.5rem 1.2rem;
+  background-color: lightgray;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.button-back:hover {
+  background-color: black;
+  color: lightgray;
+}
+
+.button-download {
+  padding: 0.5rem 1.2rem;
+  background-color: blue;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.button-download:hover {
+  background-color: green;
+  color: white;
+}
