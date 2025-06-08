@@ -15,102 +15,78 @@ function MainPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [formData, setFormData] = useState({
-    numDecVar: "",
     listDecVar: "",
-    numObjective: "",
     listObjective: "",
-    numConstraint: "",
     listConstraint: "",
     objectiveSense: "maximize",
   });
 
   const handleChange = (e) => {
-    const { id, value } = e.target;
-
-    if (id.startsWith("num")) {
-      if (!/^\d*$/.test(value)) return;
-      const limits = { numDecVar: 6, numObjective: 8, numConstraint: 10 };
-      const max = limits[id];
-      const numericValue = Number(value);
-      setFormData((prev) => ({
-        ...prev,
-        [id]: numericValue > max ? String(max) : value,
-      }));
-      return;
-    }
-
+    var { id, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [id]: value,
     }));
   };
 
-  const isValidVariableList = (list, expectedCount) => {
-    const validFormat = list.every((v) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(v));
-    return list.length === parseInt(expectedCount, 10) && validFormat;
+  const isValidVariableList = (list) => {
+    var parsedList = list
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return parsedList.every((v) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(v));
   };
 
-  const isValidEquationList = (
-    list,
-    expectedCount,
-    validVars,
-    isObjective = false
-  ) => {
-    if (list.length !== expectedCount) return false;
-    const opRegex = /(>=|<=|=|<|>)/;
-    return list.every((eq) => {
-      if (isObjective && expectedCount === 1) {
-        const varsInEq = eq.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+  const isValidEquationList = (list, validVars, isObjective = false) => {
+    var parsedList = list
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    var opRegex = /(>=|<=|=|<|>)/;
+    var varsInEq;
+    return parsedList.every((eq) => {
+      if (isObjective) {
+        varsInEq = eq.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
         return varsInEq.every((v) => validVars.includes(v));
       }
       if (!opRegex.test(eq)) return false;
-      const varsInEq = eq.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+      varsInEq = eq.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
       return varsInEq.every((v) => validVars.includes(v));
     });
   };
 
   const validateFormData = () => {
-    let {
-      numDecVar,
-      listDecVar,
-      numObjective,
-      listObjective,
-      numConstraint,
-      listConstraint,
-    } = formData;
-    numDecVar = parseInt(numDecVar, 10);
-    listDecVar = listDecVar
+    var { listDecVar, listObjective, listConstraint } = formData;
+    var parsedDecVar = listDecVar
       .split(",")
       .map((v) => v.trim())
       .filter(Boolean);
-    numObjective = parseInt(numObjective, 10);
-    listObjective = listObjective
+    var parsedObjective = listObjective
       .split(",")
       .map((v) => v.trim())
       .filter(Boolean);
-    numConstraint = parseInt(numConstraint, 10);
-    listConstraint = listConstraint
+    var parsedConstraint = listConstraint
       .split(",")
       .map((v) => v.trim())
       .filter(Boolean);
 
-    if (!isValidVariableList(listDecVar, numDecVar)) {
+    if (!isValidVariableList(listDecVar)) {
       alert(
         "Invalid decision variables! Use alphanumeric names (e.g., x, y) separated by commas."
       );
       return false;
     }
 
-    if (!isValidEquationList(listObjective, numObjective, listDecVar, true)) {
+    if (!isValidEquationList(listObjective, parsedDecVar, true)) {
       alert(
-        numObjective === 1
+        parsedObjective.length === 1
           ? "Invalid objective! Use a linear expression with valid variables (e.g., x+2y)."
           : "Invalid objectives! Each must include an operator (e.g., x+2y>=10) and valid variables."
       );
       return false;
     }
 
-    if (!isValidEquationList(listConstraint, numConstraint, listDecVar)) {
+    if (!isValidEquationList(listConstraint, parsedDecVar)) {
       alert(
         "Invalid constraints! Each must include an operator (e.g., x+y>=6) and valid variables."
       );
@@ -129,19 +105,33 @@ function MainPage() {
     setShowConfirmModal(false);
     setIsLoading(true);
 
-    const modifiedFormData = {
-        ...formData,
-        listObjective: formData.listObjective.replace(/\n/g, ","),
-        listConstraint: formData.listConstraint.replace(/\n/g, ","),
+    var parsedDecVar = formData?.listDecVar
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    var parsedObjective = formData?.listObjective
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    var parsedConstraint = formData?.listConstraint
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    var modifiedFormData = {
+      listDecVar: parsedDecVar,
+      listObjective: parsedObjective,
+      listConstraint: parsedConstraint,
+      objectiveSense: formData?.objectiveSense,
     };
 
     try {
-      const response = await fetch("http://localhost:5000/solve", {
+      var response = await fetch("http://localhost:5000/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(modifiedFormData),
       });
-      const result = await response.json();
+      var result = await response.json();
       setIsLoading(false);
       navigate("/results", {
         state: { results: result.results, input: result.input },
@@ -168,11 +158,11 @@ function MainPage() {
         >
           <div
             style={{
-              border: "4px solid rgba(0, 0, 0, 0.1)",
+              border: "1rem solid rgba(0, 0, 0, 0.1)",
               borderLeftColor: "#007bff",
               borderRadius: "50%",
-              width: "36px",
-              height: "36px",
+              width: "1rem",
+              height: "1rem",
               animation: "spin 1s linear infinite",
             }}
           ></div>
@@ -194,82 +184,55 @@ function MainPage() {
             }}
           >
             <TextInput
-              label="How Many Decision Variables?"
-              id="numDecVar"
-              placeholder="*..."
-              value={formData.numDecVar}
-              onChange={handleChange}
-              textFieldWidth="230px"
-              description="*Enter Whole Numbers Only (1,...,8)"
-            />
-            <TextInput
               label="Enter the Decision Variables :"
               id="listDecVar"
               placeholder="*..."
-              value={formData.listDecVar}
+              value={formData?.listDecVar}
               onChange={handleChange}
-              textFieldWidth="440px"
-              description="*Separate the Variables with Commas (Example: x1,x2,...)"
+              textFieldWidth="28rem"
+              description="*Separate with commas (if more than one) [Example: x1,x2,...]"
             />
             <TextInput
-              label="How Many Objectives?"
-              id="numObjective"
+              label="Enter the Objective Functions :"
+              id="listObjective"
               placeholder="*..."
-              value={formData.numObjective}
+              value={formData?.listObjective}
               onChange={handleChange}
-              textFieldWidth="230px"
-              description="*Enter Whole Numbers Only (1,...,8)"
+              textFieldWidth="28rem"
+              textFieldHeight="6.5rem"
+              description={
+                "*Separate the objectives with commas and assign the targets (if more than one)\nExample: x1+2*x2>=8,\n3*x1-x2<=12\nOtherwise, just type it in without the targets\nExample: 5*x1+4*x2"
+              }
             />
-            {formData.numObjective === "1" && (
+            {formData?.listObjective?.split(",").length === 1 && (
               <SelectInput
                 label="Optimization Direction:"
                 id="objectiveSense"
-                value={formData.objectiveSense}
+                value={formData?.objectiveSense}
                 onChange={handleChange}
                 options={[
                   { value: "maximize", label: "Maximize" },
                   { value: "minimize", label: "Minimize" },
                 ]}
-                selectWidth="230px"
+                selectWidth="7rem"
               />
             )}
-            <TextInput
-              label="Enter the Objective Functions :"
-              id="listObjective"
-              placeholder="*..."
-              value={formData.listObjective}
-              onChange={handleChange}
-              textFieldWidth="440px"
-              textFieldHeight="100px"
-              description={
-                formData.numObjective === "1"
-                  ? "*Example: x+2y (no operator needed)"
-                  : "*If there are multiple objectives,\nseparate the Objective Functions with Commas and assign the target\nExample: x1+2*x2>=8,3*x1-x2<=12\nOtherwise, just type in the objective function without the target\nExample: 5*x1+4*x2"
-              }
-            />
-            <TextInput
-              label="How Many Constraints?"
-              id="numConstraint"
-              placeholder="*..."
-              value={formData.numConstraint}
-              onChange={handleChange}
-              textFieldWidth="230px"
-              description="*Enter Whole Numbers Only (1,...,8)"
-            />
             <TextInput
               label="Enter the Constraints :"
               id="listConstraint"
               placeholder="*..."
-              value={formData.listConstraint}
+              value={formData?.listConstraint}
               onChange={handleChange}
-              textFieldWidth="440px"
-              textFieldHeight="100px"
-              description={"*Separate the Constraints with Commas (if more than one)\nExample:\nx1+x2<=12,x1-x2>=3"}
+              textFieldWidth="28rem"
+              textFieldHeight="6.5rem"
+              description={
+                "*Separate with commas (if more than one)\nExample:\nx1+x2<=12,\nx1-x2>=3"
+              }
             />
             <div style={{ marginLeft: "16.65rem" }}>
               <SubmitButton
                 text="Calculate"
-                onClick={handleSubmit}  
+                onClick={handleSubmit}
                 style={{ margin: "0" }}
               />
             </div>
@@ -291,6 +254,7 @@ function MainPage() {
               </button>
             </div>
           </Modal>
+          <div style={{marginTop: "1.8rem"}}></div>
           <Footer />
         </>
       )}

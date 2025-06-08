@@ -23,8 +23,8 @@ function ResultPage() {
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const payload = { results, input };
-      const response = await fetch("http://localhost:5000/download-report", {
+      var payload = { results, input };
+      var response = await fetch("http://localhost:5000/download-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -34,8 +34,8 @@ function ResultPage() {
         throw new Error(`Download failed with status: ${response.status}`);
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      var blob = await response.blob();
+      var url = window.URL.createObjectURL(blob);
       window.open(url);
     } catch (error) {
       console.error("Download error: ", error);
@@ -53,7 +53,7 @@ function ResultPage() {
     <>
       {isGenerating ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
-          <div style={{ border: '4px solid rgba(0, 0, 0, 0.1)', borderLeftColor: '#007bff', borderRadius: '50%', width: '36px', height: '36px', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ border: '1rem solid rgba(0, 0, 0, 0.1)', borderLeftColor: '#007bff', borderRadius: '50%', width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }}></div>
           <p>Generating...</p>
         </div>
       ) : (

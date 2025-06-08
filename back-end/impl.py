@@ -4,7 +4,7 @@ from pulp import LpProblem, LpVariable, LpMinimize, LpMaximize, lpSum, LpStatus
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -21,29 +21,14 @@ def solve():
     data = request.json
 
     try:
-        num_dec_var = int(data.get('numDecVar'))
-
-        list_dec_var = [v.strip() for v in data.get('listDecVar', '').split(',') if v.strip()]
-
-        num_objective = int(data.get('numObjective'))
-
-        list_objective = [v.strip() for v in data.get('listObjective', '').split(',') if v.strip()]
-
-        num_constraint = int(data.get('numConstraint'))
-
-        list_constraint = [v.strip() for v in data.get('listConstraint', '').split(',') if v.strip()]
-
+        list_dec_var = [v.strip() for v in data.get('listDecVar', []) if v.strip()]
+        list_objective = [v.strip() for v in data.get('listObjective', []) if v.strip()]
+        list_constraint = [v.strip() for v in data.get('listConstraint', []) if v.strip()]
         objective_sense = data.get('objectiveSense', 'maximize').lower()
 
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"Invalid input: {str(e)}"}), 400
 
-    if len(list_dec_var) != num_dec_var:
-        return jsonify({"error": f"Expected {num_dec_var} decision variables, got {len(list_dec_var)}"}), 400
-    if len(list_objective) != num_objective:
-        return jsonify({"error": f"Expected {num_objective} objectives, got {len(list_objective)}"}), 400
-    if len(list_constraint) != num_constraint:
-        return jsonify({"error": f"Expected {num_constraint} constraints, got {len(list_constraint)}"}), 400
     if objective_sense not in ['maximize', 'minimize']:
         return jsonify({"error": "Objective sense must be 'maximize' or 'minimize'"}), 400
 
@@ -65,7 +50,7 @@ def solve():
         equation = equation.replace(' ', '')
         epsilon = 1e-5
 
-        if is_objective and num_objective == 1 and not any(op in equation for op in ['<=', '>=', '==', '=', '<', '>']):
+        if is_objective and len(list_objective) == 1 and not any(op in equation for op in ['<=', '>=', '==', '=', '<', '>']):
             expr = 0
             equation = re.sub(r'(?<!\d)([+-])(?=\d*\.?\d*[a-zA-Z_])', r' \1 ', equation)
             equation = equation.replace('+', ' + ').replace('-', ' - ')
@@ -122,7 +107,7 @@ def solve():
             
         return None, None, None, f"No valid operator in '{equation}'"
 
-    if num_objective == 1:
+    if len(list_objective) == 1:
         obj = list_objective[0]
         parsed = parse_equation(obj, decision_vars, is_objective=True)
 
@@ -170,8 +155,8 @@ def solve():
         })
     else:
         model = LpProblem("Goal_Programming", LpMinimize)
-        deviations = {f"d_minus_{i}": LpVariable(f"d_minus_{i}", cat='Continuous', lowBound=0) for i in range(num_objective)}
-        deviations.update({f"d_plus_{i}": LpVariable(f"d_plus_{i}", cat='Continuous', lowBound=0) for i in range(num_objective)})
+        deviations = {f"d_minus_{i}": LpVariable(f"d_minus_{i}", cat='Continuous', lowBound=0) for i in range(len(list_objective))}
+        deviations.update({f"d_plus_{i}": LpVariable(f"d_plus_{i}", cat='Continuous', lowBound=0) for i in range(len(list_objective))})
 
         # Minimize only undesirable deviations based on constraint type
         obj_terms = []
@@ -228,9 +213,9 @@ def solve():
     return jsonify({
         "results": results,
         "input": {
-            "numDecVar": num_dec_var,
+            "numDecVar": len(list_dec_var),
             "listDecVar": list_dec_var,
-            "numObjective": num_objective,
+            "numObjective": len(list_objective),
             "listObjective": list_objective,
             "numConstraint": len(display_constraints),
             "listConstraint": display_constraints,
@@ -253,9 +238,8 @@ def download_report():
     linear_results = results.get("linearProgramming", [])
     goal_result = results.get("goalProgramming", None)
 
-    # Create PDF
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=20, bottomMargin=20, rightMargin=20, leftMargin=20)
     styles = getSampleStyleSheet()
     
     # Define custom styles
@@ -277,7 +261,7 @@ def download_report():
         name='BodyStyle',
         parent=styles['BodyText'],
         fontSize=10,
-        spaceAfter=6,
+        spaceAfter=4,
         leading=12
     )
     table_label_style = ParagraphStyle(
@@ -290,28 +274,23 @@ def download_report():
 
     elements = []
 
-    # Title
     elements.append(Paragraph("Optimization Analysis Report", title_style))
-    elements.append(Spacer(1, 6))
     elements.append(Paragraph(f"Generated on {datetime.now().strftime('%d-%m-%Y %H:%M:%S')} WIB", body_style))
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 12))
 
-    # Input Summary
     elements.append(Paragraph("Input Summary", section_style))
-    
-    # Decision Variables
+
     elements.append(Paragraph("Decision Variables:", body_style))
     dec_var_text = ", ".join(map(str, list_dec_var)) if list_dec_var and list_dec_var != ["No variables provided"] else "None"
     elements.append(Paragraph(dec_var_text, body_style))
     elements.append(Spacer(1, 6))
 
     # Optimization Direction (for single-objective LP)
-    if input_data.get("numObjective") == 1:
+    if len(list_objective) == 1:
         elements.append(Paragraph("Optimization Direction:", body_style))
         elements.append(Paragraph(objective_sense.capitalize(), body_style))
         elements.append(Spacer(1, 6))
 
-    # Objective Functions
     elements.append(Paragraph("Objective Functions:", body_style))
     if list_objective and list_objective != ["No objectives provided"]:
         for obj in list_objective:
@@ -320,7 +299,6 @@ def download_report():
         elements.append(Paragraph("None", body_style))
     elements.append(Spacer(1, 6))
 
-    # Constraints
     elements.append(Paragraph("Constraints:", body_style))
     if list_constraint and list_constraint != ["No constraints provided"]:
         for constr in list_constraint:
@@ -329,121 +307,109 @@ def download_report():
         elements.append(Paragraph("None", body_style))
     elements.append(Spacer(1, 6))
 
-    # Linear Programming Results (only if single objective)
+    # Linear Programming Results
     if linear_results:
         elements.append(Paragraph("Linear Programming Results", section_style))
         for i, result in enumerate(linear_results):
-            elements.append(Paragraph(f"Objective {i + 1}", body_style))
-            table_data = [
-                [Paragraph("Status", table_label_style), result.get('status', 'N/A')],
-                [Paragraph("Objective Value", table_label_style), str(result.get('objectiveValue', 'N/A'))],
-                [Paragraph("Variables", table_label_style), ""]
+            table_elements = [
+                Paragraph(f"Objective {i + 1}", body_style),
+                Table([
+                    [Paragraph("Status", table_label_style), result.get('status', 'N/A')],
+                    [Paragraph("Objective Value", table_label_style), str(result.get('objectiveValue', 'N/A'))],
+                    [Paragraph("Variables", table_label_style), ""]
+                ] + [[k, str(v)] for k, v in result.get('variables', {}).items()],
+                colWidths=[120, 200])
             ]
-            for k, v in result.get('variables', {}).items():
-                table_data.append([k, str(v)])
-            
-            table = Table(table_data, colWidths=[150, 250])
-            table.setStyle(TableStyle([
-                ('FONT', (0, 0), (-1, -1), 'Helvetica', 10),
+            table_elements[1].setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2)
             ]))
-            elements.append(table)
+            elements.append(KeepTogether(table_elements))
             elements.append(Spacer(1, 6))
 
-    # Goal Programming Results (only if multiple objectives)
+    # Goal Programming Results
     if goal_result:
         elements.append(Paragraph("Goal Programming Results", section_style))
-        table_data = [
-            [Paragraph("Status", table_label_style), goal_result.get('status', 'N/A')],
-            [Paragraph("Objective Value (Sum of Deviations)", table_label_style), str(goal_result.get('objectiveValue', 'N/A'))],
-            [Paragraph("Variables", table_label_style), ""]
+        table_elements = [
+            Table([
+                [Paragraph("Status", table_label_style), goal_result.get('status', 'N/A')],
+                [Paragraph("Objective Value (Sum of Deviations)", table_label_style), str(goal_result.get('objectiveValue', 'N/A'))],
+                [Paragraph("Variables", table_label_style), ""]
+            ] + [[k, str(v)] for k, v in goal_result.get('variables', {}).items()],
+            colWidths=[120, 200])
         ]
-        for k, v in goal_result.get('variables', {}).items():
-            table_data.append([k, str(v)])
-        
-        table = Table(table_data, colWidths=[150, 250])
-        table.setStyle(TableStyle([
-            ('FONT', (0, 0), (-1, -1), 'Helvetica', 10),
+        table_elements[0].setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2)
         ]))
-        elements.append(table)
+        elements.append(KeepTogether(table_elements))
         elements.append(Spacer(1, 6))
 
     # Bar Chart for Decision Variable Values
-    plt.figure(figsize=(4, 3))
-    var_names = []
-    var_values = []
-    bar_colors = []
+    if list_dec_var and list_dec_var != ["No variables provided"] and (linear_results or goal_result):
+        chart_elements = [
+            Paragraph("Decision Variable Values", section_style)
+        ]
+        plt.figure(figsize=(4, 2))
+        var_names = []
+        var_values = []
+        bar_colors = []
 
-    # Extract decision variables from input
-    decision_vars = set(list_dec_var) if list_dec_var and list_dec_var != ["No variables provided"] else set()
+        decision_vars = set(list_dec_var)
 
-    # Linear Programming variables
-    if linear_results:
-        for result in linear_results:
-            variables = result.get('variables', {})
+        if linear_results:
+            for result in linear_results:
+                variables = result.get('variables', {})
+                for var in decision_vars:
+                    if var in variables and variables[var] is not None:
+                        var_names.append(f"{var} (LP)")
+                        var_values.append(float(variables[var]))
+                        bar_colors.append('#4CAF50')
+
+        if goal_result:
+            variables = goal_result.get('variables', {})
             for var in decision_vars:
                 if var in variables and variables[var] is not None:
-                    var_names.append(f"{var} (LP)")
+                    var_names.append(f"{var} (GP)")
                     var_values.append(float(variables[var]))
-                    bar_colors.append('#4CAF50')
+                    bar_colors.append('#2196F3')
 
-    # Goal Programming variables
-    if goal_result:
-        variables = goal_result.get('variables', {})
-        for var in decision_vars:
-            if var in variables and variables[var] is not None:
-                var_names.append(f"{var} (GP)")
-                var_values.append(float(variables[var]))
-                bar_colors.append('#2196F3')
+        if var_names:
+            y_positions = np.arange(len(var_names)) * 0.4
+            bars = plt.barh(y_positions, var_values, color=bar_colors, height=0.3)
+            plt.yticks(y_positions, var_names)
+            plt.title("Decision Variable Values", fontsize=10)
+            plt.xlabel("Value", fontsize=8)
+            plt.ylabel("Variable", fontsize=8)
+            plt.tight_layout()
 
-    if var_names:
-        # Create horizontal bar chart
-        # Create custom y-positions to reduce gaps
-        y_positions = np.arange(len(var_names)) * 0.4  # Reduce gap by scaling positions
-        bars = plt.barh(y_positions, var_values, color=bar_colors, height=0.3)
-        plt.yticks(y_positions, var_names)  # Set y-tick labels
-        plt.title("Decision Variable Values", fontsize=12)
-        plt.xlabel("Variable Value", fontsize=10)
-        plt.ylabel("Variable", fontsize=10)
-        plt.tight_layout()
+            for i, bar in enumerate(bars):
+                width = bar.get_width()
+                plt.text(width + 0.01, y_positions[i], f'{var_values[i]:.0f}', ha='left', va='center', fontsize=8)
 
-        # Add value labels at the end of each bar
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            plt.text(
-                x=width + 0.01,
-                y=y_positions[i],
-                s=f'{var_values[i]:.0f}',
-                ha='left',
-                va='center',
-                fontsize=10
-            )
+            chart_buffer = io.BytesIO()
+            plt.savefig(chart_buffer, format='PNG', dpi=100, bbox_inches='tight')
+            plt.close()
+            chart_buffer.seek(0)
 
-        chart_buffer = io.BytesIO()
-        plt.savefig(chart_buffer, format='PNG', dpi=100)
-        plt.close()
-        chart_buffer.seek(0)
-
-        elements.append(Paragraph("Decision Variable Values", section_style))
+            chart_elements.append(Image(chart_buffer, width=300, height=200))
+        else:
+            chart_elements.append(Paragraph("No decision variable values available for charting.", body_style))
+        elements.append(KeepTogether(chart_elements))
         elements.append(Spacer(1, 6))
-        elements.append(Image(chart_buffer, width=400, height=300))
-    else:
-        elements.append(Paragraph("No decision variable values available for charting.", body_style))
 
-    # Build the PDF
     try:
         doc.build(elements)
     except Exception as e:
@@ -451,13 +417,10 @@ def download_report():
 
     buffer.seek(0)
 
-    # Send the PDF as a Response object
     response = Response(
         buffer.getvalue(),
         mimetype='application/pdf',
-        headers={
-            'Content-Disposition': 'attachment; filename=analysis_report.pdf'
-        }
+        headers={'Content-Disposition': 'attachment; filename=analysis_report.pdf'}
     )
 
     return response
