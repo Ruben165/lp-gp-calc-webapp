@@ -1,4 +1,4 @@
-import '../styles/submit-button.css';
+import "../styles/submit-button.css";
 
 function SubmitButton({ text, onClick, type = "button", style = {} }) {
   return (
@@ -7,6 +7,7 @@ function SubmitButton({ text, onClick, type = "button", style = {} }) {
       onClick={onClick}
       className="submit-button"
       style={style}
+      title={text}
     >
       {text}
     </button>

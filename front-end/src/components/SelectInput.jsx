@@ -1,9 +1,18 @@
-import '../styles/text-input.css';
+import "../styles/text-input.css";
 
-function SelectInput({ label, id, value, onChange, options, selectWidth = "230px" }) {
+function SelectInput({
+  label,
+  id,
+  value,
+  onChange,
+  options,
+  selectWidth = "7rem",
+}) {
   return (
     <div className="text-input">
-      <label htmlFor={id} className="text-input__label">{label}</label>
+      <label htmlFor={id} className="text-input__label">
+        {label}
+      </label>
       <select
         id={id}
         className="text-input__field"

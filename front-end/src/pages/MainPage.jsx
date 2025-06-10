@@ -137,8 +137,7 @@ function MainPage() {
         state: { results: result.results, input: result.input },
       });
     } catch (error) {
-      console.error("Error: ", error);
-      alert("Something went wrong!");
+      alert(error);
       setIsLoading(false);
     }
   };
@@ -186,22 +185,20 @@ function MainPage() {
             <TextInput
               label="Enter the Decision Variables :"
               id="listDecVar"
-              placeholder="*..."
+              placeholder="x1,x2,..."
               value={formData?.listDecVar}
               onChange={handleChange}
-              textFieldWidth="28rem"
-              description="*Separate with commas (if more than one) [Example: x1,x2,...]"
+              textFieldHeight="2.2rem"
+              description="*Separate with commas (if more than one)"
             />
             <TextInput
               label="Enter the Objective Functions :"
               id="listObjective"
-              placeholder="*..."
+              placeholder={"5*x1+4*x2\nor\nx1+2*x2>=8,\n3*x1-x2<=12\n..."}
               value={formData?.listObjective}
               onChange={handleChange}
-              textFieldWidth="28rem"
-              textFieldHeight="6.5rem"
               description={
-                "*Separate the objectives with commas and assign the targets (if more than one)\nExample: x1+2*x2>=8,\n3*x1-x2<=12\nOtherwise, just type it in without the targets\nExample: 5*x1+4*x2"
+                "*Separate the objectives with commas and assign the targets (if more than one)\nOtherwise, just type it in without the targets"
               }
             />
             {formData?.listObjective?.split(",").length === 1 && (
@@ -214,20 +211,15 @@ function MainPage() {
                   { value: "maximize", label: "Maximize" },
                   { value: "minimize", label: "Minimize" },
                 ]}
-                selectWidth="7rem"
               />
             )}
             <TextInput
               label="Enter the Constraints :"
               id="listConstraint"
-              placeholder="*..."
+              placeholder={"x1+x2<=12,\nx1-x2>=3\n..."}
               value={formData?.listConstraint}
               onChange={handleChange}
-              textFieldWidth="28rem"
-              textFieldHeight="6.5rem"
-              description={
-                "*Separate with commas (if more than one)\nExample:\nx1+x2<=12,\nx1-x2>=3"
-              }
+              description={"*Separate with commas (if more than one)"}
             />
             <div style={{ marginLeft: "16.65rem" }}>
               <SubmitButton
@@ -246,15 +238,16 @@ function MainPage() {
               <button
                 className="cancel"
                 onClick={() => setShowConfirmModal(false)}
+                title="Not Yet"
               >
                 Not Yet
               </button>
-              <button className="confirm" onClick={handleConfirm}>
+              <button className="confirm" onClick={handleConfirm} title="Go">
                 Go
               </button>
             </div>
           </Modal>
-          <div style={{marginTop: "1.8rem"}}></div>
+          <div style={{ marginTop: "1.7rem" }}></div>
           <Footer />
         </>
       )}

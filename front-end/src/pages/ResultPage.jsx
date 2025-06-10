@@ -38,8 +38,7 @@ function ResultPage() {
       var url = window.URL.createObjectURL(blob);
       window.open(url);
     } catch (error) {
-      console.error("Download error: ", error);
-      alert("Failed to generate analysis file!");
+      alert(error);
     } finally {
       setIsGenerating(false);
     }
@@ -52,8 +51,26 @@ function ResultPage() {
   return (
     <>
       {isGenerating ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', textAlign: 'center' }}>
-          <div style={{ border: '1rem solid rgba(0, 0, 0, 0.1)', borderLeftColor: '#007bff', borderRadius: '50%', width: '1rem', height: '1rem', animation: 'spin 1s linear infinite' }}></div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              border: "1rem solid rgba(0, 0, 0, 0.1)",
+              borderLeftColor: "#007bff",
+              borderRadius: "50%",
+              width: "1rem",
+              height: "1rem",
+              animation: "spin 1s linear infinite",
+            }}
+          ></div>
           <p>Generating...</p>
         </div>
       ) : (
@@ -66,21 +83,27 @@ function ResultPage() {
               <h3 className="sub-heading">Input Summary</h3>
               <p className="text">
                 <strong>Decision Variables:</strong>{" "}
-                {Array.isArray(input.listDecVar) ? input.listDecVar.join(", ") : "None"}
+                {Array.isArray(input.listDecVar)
+                  ? input.listDecVar.join(", ")
+                  : "None"}
               </p>
               {input.numObjective === 1 && input.objectiveSense && (
                 <p className="text">
                   <strong>Optimization Direction:</strong>{" "}
-                  {input.objectiveSense.charAt(0).toUpperCase() + input.objectiveSense.slice(1)}
+                  {input.objectiveSense.charAt(0).toUpperCase() +
+                    input.objectiveSense.slice(1)}
                 </p>
               )}
               <p className="text">
                 <strong>Objective Functions:</strong>
               </p>
               <ul className="list">
-                {Array.isArray(input.listObjective) && input.listObjective.length > 0 ? (
+                {Array.isArray(input.listObjective) &&
+                input.listObjective.length > 0 ? (
                   input.listObjective.map((obj, idx) => (
-                    <li key={idx} className="list-item">{obj.trim()}</li>
+                    <li key={idx} className="list-item">
+                      {obj.trim()}
+                    </li>
                   ))
                 ) : (
                   <li className="list-item">No objectives provided</li>
@@ -90,9 +113,12 @@ function ResultPage() {
                 <strong>Constraints:</strong>
               </p>
               <ul className="list">
-                {Array.isArray(input.listConstraint) && input.listConstraint.length > 0 ? (
+                {Array.isArray(input.listConstraint) &&
+                input.listConstraint.length > 0 ? (
                   input.listConstraint.map((c, idx) => (
-                    <li key={idx} className="list-item">{c.trim()}</li>
+                    <li key={idx} className="list-item">
+                      {c.trim()}
+                    </li>
                   ))
                 ) : (
                   <li className="list-item">No constraints provided</li>
@@ -100,36 +126,37 @@ function ResultPage() {
               </ul>
             </div>
 
-            {results.linearProgramming && results.linearProgramming.length > 0 && (
-              <div className="section">
-                <h3 className="sub-heading">Linear Programming</h3>
-                {results.linearProgramming.map((lp, index) => (
-                  <div key={index} className="result-card">
-                    <strong className="result-card-title">
-                      Objective {index + 1}
-                    </strong>
-                    <div>
-                      <p className="text">
-                        <strong>Status:</strong> {lp.status}
-                      </p>
-                      <p className="text">
-                        <strong>Objective Value:</strong> {lp.objectiveValue}
-                      </p>
-                      <p className="text">
-                        <strong>Variable Values:</strong>
-                      </p>
-                      <ul className="list">
-                        {Object.entries(lp.variables).map(([key, value]) => (
-                          <li key={key} className="list-item">
-                            {key}: {value}
-                          </li>
-                        ))}
-                      </ul>
+            {results.linearProgramming &&
+              results.linearProgramming.length > 0 && (
+                <div className="section">
+                  <h3 className="sub-heading">Linear Programming</h3>
+                  {results.linearProgramming.map((lp, index) => (
+                    <div key={index} className="result-card">
+                      <strong className="result-card-title">
+                        Objective {index + 1}
+                      </strong>
+                      <div>
+                        <p className="text">
+                          <strong>Status:</strong> {lp.status}
+                        </p>
+                        <p className="text">
+                          <strong>Objective Value:</strong> {lp.objectiveValue}
+                        </p>
+                        <p className="text">
+                          <strong>Variable Values:</strong>
+                        </p>
+                        <ul className="list">
+                          {Object.entries(lp.variables).map(([key, value]) => (
+                            <li key={key} className="list-item">
+                              {key}: {value}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
             {results.goalProgramming && (
               <div className="section">
@@ -170,6 +197,7 @@ function ResultPage() {
               <button
                 className="button-back"
                 onClick={() => setShowBackConfirmModal(true)}
+                title="Back"
               >
                 Back
               </button>
@@ -177,6 +205,7 @@ function ResultPage() {
               <button
                 className="button-download"
                 onClick={handleDownload}
+                title="Download Analysis File"
               >
                 Download Analysis File
               </button>
@@ -191,10 +220,15 @@ function ResultPage() {
                 <button
                   className="cancel"
                   onClick={() => setShowBackConfirmModal(false)}
+                  title="Not Yet"
                 >
                   Not Yet
                 </button>
-                <button className="confirm" onClick={() => navigate("/")}>
+                <button
+                  className="confirm"
+                  onClick={() => navigate("/")}
+                  title="Go"
+                >
                   Go
                 </button>
               </div>
