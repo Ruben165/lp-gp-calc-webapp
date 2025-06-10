@@ -201,18 +201,25 @@ function MainPage() {
                 "*Separate the objectives with commas and assign the targets (if more than one)\nOtherwise, just type it in without the targets"
               }
             />
-            {formData?.listObjective?.split(",").length === 1 && (
-              <SelectInput
-                label="Optimization Direction:"
-                id="objectiveSense"
-                value={formData?.objectiveSense}
-                onChange={handleChange}
-                options={[
-                  { value: "maximize", label: "Maximize" },
-                  { value: "minimize", label: "Minimize" },
-                ]}
-              />
-            )}
+            <SelectInput
+              label="Optimization Direction:"
+              id="objectiveSense"
+              value={
+                formData?.listObjective?.split(",").length === 1
+                  ? formData?.objectiveSense
+                  : ""
+              }
+              onChange={
+                formData?.listObjective?.split(",").length === 1
+                  ? handleChange
+                  : null
+              }
+              options={[
+                { value: "", label: "N/A" },
+                { value: "maximize", label: "Maximize" },
+                { value: "minimize", label: "Minimize" },
+              ]}
+            />
             <TextInput
               label="Enter the Constraints :"
               id="listConstraint"
