@@ -143,6 +143,10 @@ function ResultPage() {
                           <strong>Objective Value:</strong> {lp.objectiveValue}
                         </p>
                         <p className="text">
+                          <strong>Computed Objective Value:</strong>{" "}
+                          {lp.computedObjectiveValue ?? "N/A"}
+                        </p>
+                        <p className="text">
                           <strong>Variable Values:</strong>
                         </p>
                         <ul className="list">
@@ -169,6 +173,24 @@ function ResultPage() {
                     <strong>Objective Value (Sum of Deviations):</strong>{" "}
                     {results.goalProgramming.objectiveValue}
                   </p>
+                  <p className="text">
+                    <strong>Computed Objective Values:</strong>
+                  </p>
+                  <ul className="list">
+                    {Array.isArray(
+                      results.goalProgramming.computedObjectiveValues
+                    ) ? (
+                      results.goalProgramming.computedObjectiveValues.map(
+                        (value, idx) => (
+                          <li key={idx} className="list-item">
+                            Objective {idx + 1}: {value ?? "N/A"}
+                          </li>
+                        )
+                      )
+                    ) : (
+                      <li className="list-item">N/A</li>
+                    )}
+                  </ul>
                   <p className="text">
                     <strong>Variable Values:</strong>
                   </p>

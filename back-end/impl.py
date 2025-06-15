@@ -143,15 +143,21 @@ def solve():
             if var_name not in user_lower_bounds:
                 model += var >= 0, f"NonNegativity_{var_name}"
 
-        print(model)
-
         model.solve()
+
+        obj_values = []
+        if model.status == 1:  # Optimal solution
+            parsed = parse_equation(list_objective[0], decision_vars, is_objective=True)
+            expr, _, _ = parsed
+            obj_value = sum(coeff * decision_vars[var].varValue for var, coeff in expr.terms()) if hasattr(expr, 'terms') else expr.value()
+            obj_values.append(obj_value)
 
         results["linearProgramming"].append({
             "objectiveIndex": 1,
             "status": LpStatus[model.status],
             "objectiveValue": model.objective.value() if model.status == 1 else None,
-            "variables": {v.name: v.varValue for v in model.variables() if v.varValue is not None}
+            "variables": {v.name: v.varValue for v in model.variables() if v.varValue is not None},
+            "computedObjectiveValue": obj_values[0] if obj_values else None
         })
     else:
         model = LpProblem("Goal_Programming", LpMinimize)
@@ -197,14 +203,22 @@ def solve():
             if var_name not in user_lower_bounds:
                 model += var >= 0, f"NonNegativity_{var_name}"
 
-        print(model)
-
         model.solve()
+
+        obj_values = []
+        if model.status == 1:  # Optimal solution
+            for obj in list_objective:
+                parsed = parse_equation(obj, decision_vars, is_objective=True)
+                expr, _, _ = parsed
+                if expr:
+                    obj_value = sum(coeff * decision_vars[var].varValue for var, coeff in expr.terms()) if hasattr(expr, 'terms') else expr.value()
+                    obj_values.append(obj_value)
 
         results["goalProgramming"] = {
             "status": LpStatus[model.status],
             "objectiveValue": model.objective.value() if model.status == 1 else None,
-            "variables": {v.name: v.varValue for v in model.variables() if v.varValue is not None}
+            "variables": {v.name: v.varValue for v in model.variables() if v.varValue is not None},
+            "computedObjectiveValues": obj_values if obj_values else None
         }
 
     display_constraints = list_constraint.copy()
@@ -311,14 +325,15 @@ def download_report():
     if linear_results:
         elements.append(Paragraph("Linear Programming Results", section_style))
         for i, result in enumerate(linear_results):
+            table_data = [
+                [Paragraph("Status", table_label_style), result.get('status', 'N/A')],
+                [Paragraph("Objective Value", table_label_style), str(result.get('objectiveValue', 'N/A'))],
+                [Paragraph("Computed Objective Value", table_label_style), str(result.get('computedObjectiveValue', 'N/A'))],
+                [Paragraph("Variables", table_label_style), ""]
+            ] + [[k, str(v)] for k, v in result.get('variables', {}).items()]
             table_elements = [
                 Paragraph(f"Objective {i + 1}", body_style),
-                Table([
-                    [Paragraph("Status", table_label_style), result.get('status', 'N/A')],
-                    [Paragraph("Objective Value", table_label_style), str(result.get('objectiveValue', 'N/A'))],
-                    [Paragraph("Variables", table_label_style), ""]
-                ] + [[k, str(v)] for k, v in result.get('variables', {}).items()],
-                colWidths=[120, 200])
+                Table(table_data, colWidths=[100, 220])
             ]
             table_elements[1].setStyle(TableStyle([
                 ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
@@ -328,7 +343,8 @@ def download_report():
                 ('LEFTPADDING', (0, 0), (-1, -1), 4),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 4),
                 ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2)
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('WORDWRAP', (1, 0), (1, -1), True)
             ]))
             elements.append(KeepTogether(table_elements))
             elements.append(Spacer(1, 6))
@@ -336,13 +352,20 @@ def download_report():
     # Goal Programming Results
     if goal_result:
         elements.append(Paragraph("Goal Programming Results", section_style))
+        computed_values = goal_result.get('computedObjectiveValues', [])
+        table_data = [
+            [Paragraph("Status", table_label_style), goal_result.get('status', 'N/A')],
+            [Paragraph("Objective Value (Sum of Deviations)", table_label_style), str(goal_result.get('objectiveValue', 'N/A'))],
+        ]
+        if computed_values:
+            for i, value in enumerate(computed_values):
+                table_data.append([Paragraph(f"Computed Objective Value {i+1}", table_label_style), str(value)])
+        else:
+            table_data.append([Paragraph("Computed Objective Values", table_label_style), "N/A"])
+        table_data.append([Paragraph("Variables", table_label_style), ""])
+        table_data.extend([[k, str(v)] for k, v in goal_result.get('variables', {}).items()])
         table_elements = [
-            Table([
-                [Paragraph("Status", table_label_style), goal_result.get('status', 'N/A')],
-                [Paragraph("Objective Value (Sum of Deviations)", table_label_style), str(goal_result.get('objectiveValue', 'N/A'))],
-                [Paragraph("Variables", table_label_style), ""]
-            ] + [[k, str(v)] for k, v in goal_result.get('variables', {}).items()],
-            colWidths=[120, 200])
+            Table(table_data, colWidths=[100, 220])
         ]
         table_elements[0].setStyle(TableStyle([
             ('FONT', (0, 0), (-1, -1), 'Helvetica', 9),
@@ -352,7 +375,8 @@ def download_report():
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2)
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('WORDWRAP', (1, 0), (1, -1), True)
         ]))
         elements.append(KeepTogether(table_elements))
         elements.append(Spacer(1, 6))
